@@ -71,7 +71,7 @@ public class TokenServiceImpl implements TokenService {
                         tokens.add(new Token(TokenType.NULL, value.toString()));
                         break;
                     } else {
-                        throw new UnsupportedOperationException("Invalid character. Cannot Tokenize json string");
+                        throw new UnsupportedOperationException("Invalid character: '" + currentChar + "' Cannot Tokenize json string");
                     }
             }
             currentPointer++;

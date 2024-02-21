@@ -14,20 +14,17 @@ import java.util.Map;
 
 @Service
 public class ParserServerImpl implements ParserService {
-    private int index;
-    private final List<Token> allTokens = new ArrayList<>();
 
     @Override
     public ASTNode parsedJSON(List<Token> tokens) {
-        index = 0;
         if (tokens.isEmpty()) {
             throw new IllegalArgumentException("Nothing to parse");
         }
-        allTokens.addAll(tokens);
-        return parseValue(tokens.get(index));
+        return parseValue(tokens, 0);
     }
 
-    private ASTNode parseValue(Token token) {
+    private ASTNode parseValue(List<Token> tokens, int index) {
+        Token token = tokens.get(index);
         switch(token.getTokenType()) {
             case STRING -> {
                 return new StringASTNode(token.getValue());
@@ -45,56 +42,55 @@ public class ParserServerImpl implements ParserService {
                 return new BooleanASTNode(false);
             }
             case BRACE_OPEN -> {
-                return parseObject(nextToken());
+                return parseObject(tokens, ++index);
             }
             case BRACKET_OPEN -> {
-                return parseArray(nextToken());
+                return parseArray(tokens, ++index);
             }
             default -> throw new IllegalArgumentException("Unexpected token: " + token.getValue());
         }
     }
 
-    private ObjectASTNode parseObject(Token token) {
+    private ObjectASTNode parseObject(List<Token> tokens, int index) {
         Map<String, ASTNode> nodeMap = new HashMap<>();
+        Token token = tokens.get(index);
         while (token.getTokenType() != TokenType.BRACE_CLOSE) {
             if (token.getTokenType() == TokenType.STRING) {
                 String key = token.getValue();
-                token = nextToken();
+                token = tokens.get(++index);
                 if (token.getTokenType() != TokenType.COLON) {
                     throw new IllegalArgumentException(" Invalid JSON! Expected key-value format");
                 }
-                token = nextToken();
-                ASTNode valueNode = parseValue(token);
+                ASTNode valueNode = parseValue(tokens, ++index);
                 nodeMap.put(key, valueNode);
             } else {
                 throw new IllegalArgumentException("Valid JSON should have a string as key");
             }
-            token = nextToken();
+            token = tokens.get(++index);
             if (token.getTokenType() == TokenType.COMMA) {
-                token = nextToken();
+                token = tokens.get(++index);
+                if (token.getTokenType() == TokenType.BRACE_CLOSE) {
+                    throw new IllegalArgumentException("Unexpected token: " + token.getValue());
+                }
             }
         }
         return new ObjectASTNode(nodeMap);
     }
 
-    private ArrayASTNode parseArray(Token token) {
+    private ArrayASTNode parseArray(List<Token> tokens, int index) {
         List<ASTNode> nodes = new ArrayList<>();
+        Token token = tokens.get(index);
         while (token.getTokenType() != TokenType.BRACKET_CLOSE) {
-            ASTNode node = parseValue(token);
+            ASTNode node = parseValue(tokens, index);
             nodes.add(node);
-            token = nextToken();
+            token = tokens.get(++index);
             if (token.getTokenType() == TokenType.COMMA) {
-                token = nextToken();
+                token = tokens.get(++index);
+                if (token.getTokenType() == TokenType.BRACKET_CLOSE) {
+                    throw new IllegalArgumentException("Unexpected token: " + token.getValue());
+                }
             }
         }
         return new ArrayASTNode(nodes);
-    }
-
-    private Token nextToken() {
-        if (index < allTokens.size()) {
-            return allTokens.get(++index);
-        } else {
-            throw new IndexOutOfBoundsException("Invalid JSON!");
-        }
     }
 }
