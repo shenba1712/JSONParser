@@ -21,46 +21,66 @@ public class TokenServiceImpl implements TokenService {
         StringBuilder value = new StringBuilder();
         while (currentPointer < json.length()) {
             char currentChar = json.charAt(currentPointer);
+            if (currentPointer == 0 && currentChar != '{' && currentChar != '[') {
+                throw new IllegalArgumentException("Json should either be enclosed with brackets [] or braces {}");
+            }
             switch (currentChar) {
                 case '{':
                     tokens.add(new Token(TokenType.BRACE_OPEN, String.valueOf(currentChar)));
+                    currentPointer++;
                     break;
                 case '}':
                     tokens.add(new Token(TokenType.BRACE_CLOSE, String.valueOf(currentChar)));
+                    currentPointer++;
                     break;
                 case '[':
                     tokens.add(new Token(TokenType.BRACKET_OPEN, String.valueOf(currentChar)));
+                    currentPointer++;
                     break;
                 case ']':
                     tokens.add(new Token(TokenType.BRACKET_CLOSE, String.valueOf(currentChar)));
+                    currentPointer++;
                     break;
                 case ':':
                     tokens.add(new Token(TokenType.COLON, String.valueOf(currentChar)));
+                    currentPointer++;
                     break;
                 case ',':
                     tokens.add(new Token(TokenType.COMMA, String.valueOf(currentChar)));
+                    currentPointer++;
                     break;
                 case '"':
                     currentChar = json.charAt(++currentPointer);
                     while (currentChar != '"') {
                         value.append(currentChar);
+                        // \ could denote escape sequence. So, any char that comes after this should be included.
+                        if (currentChar == '\\') {
+                            currentChar = json.charAt(++currentPointer);
+                            value.append(currentChar);
+                        }
                         currentChar = json.charAt(++currentPointer);
                     }
                     tokens.add(new Token(TokenType.STRING, value.toString()));
+                    currentPointer++;
                     break;
                 default:
                     value = new StringBuilder();
                     // Skip whitespace
                     if (String.valueOf(currentChar).matches("\\s")) {
+                        currentPointer++;
                         break;
                     }
-                    while (String.valueOf(currentChar).matches("\\w")) {
+                    while (String.valueOf(currentChar).matches("[\\w.\\-\\\\+]")) {
                         value.append(currentChar);
                         currentChar = json.charAt(++currentPointer);
                     }
                     if (isNumeric(value.toString())) {
-                        tokens.add(new Token(TokenType.NUMBER, value.toString()));
-                        break;
+                        if (!isNumberStartingWithZero(value.toString())) {
+                            tokens.add(new Token(TokenType.NUMBER, value.toString()));
+                            break;
+                        } else {
+                            throw new UnsupportedOperationException("Json does not support numbers starting with zero.");
+                        }
                     } else if (value.toString().equals("true")) {
                         tokens.add(new Token(TokenType.TRUE, value.toString()));
                         break;
@@ -71,10 +91,10 @@ public class TokenServiceImpl implements TokenService {
                         tokens.add(new Token(TokenType.NULL, value.toString()));
                         break;
                     } else {
+                        System.out.println(tokens);
                         throw new UnsupportedOperationException("Invalid character: '" + currentChar + "' Cannot Tokenize json string");
                     }
             }
-            currentPointer++;
         }
         return tokens;
     }
@@ -85,9 +105,14 @@ public class TokenServiceImpl implements TokenService {
         }
         try {
             new BigDecimal(strNum);
+            return true;
         } catch (NumberFormatException nfe) {
             return false;
         }
-        return true;
+    }
+
+    // should allow decimals and the number zero
+    private static boolean isNumberStartingWithZero(String strNum) {
+        return strNum.startsWith("0") && !strNum.contains(".") && strNum.length() > 1;
     }
 }

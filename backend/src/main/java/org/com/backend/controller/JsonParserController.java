@@ -18,8 +18,12 @@ public class JsonParserController {
     private ParserService parserService;
 
     @PostMapping()
-    public boolean isJsonValid(@RequestBody String json) {
+    public boolean isJsonValid(@RequestBody(required=false) String json) {
         try {
+            if (json == null || json.length() <= 0) {
+                System.out.println("JSON cannot be empty.");
+                return false;
+            }
             List<Token> tokens  = tokenService.tokenize(json);
             ASTNode node = parserService.parsedJSON(tokens);
             System.out.println(node);
