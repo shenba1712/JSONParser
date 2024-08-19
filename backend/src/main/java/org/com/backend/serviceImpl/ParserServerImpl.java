@@ -25,7 +25,10 @@ public class ParserServerImpl implements ParserService {
         if (tokens.isEmpty()) {
             throw new IllegalArgumentException("Nothing to parse");
         }
+        // Keeps track of the token position. Mainly used to handle some tokens like comma, colon, braces, brackets, etc.
         AtomicInteger index = new AtomicInteger(0);
+        // used to keep track of the nesting level. JSON doesn't permit infinite nesting as it possess security risks.
+        // So, we allow a max of 20 nesting levels, beyond which an error is thrown.
         AtomicInteger nestingLevel = new AtomicInteger(0);
         ASTNode node = parseValue(tokens, index, nestingLevel);
         if (index.get() < (tokens.size()-1)) {

@@ -52,7 +52,7 @@ class JsonParserControllerTest {
     }
 
     private static Map<String, String> extractFilePaths() {
-        File folder = new File("/Users/shenba/Documents/workspace/jsonParser/backend/src/test/resources/samples");
+        File folder = new File("absolute/path/to/jsonParser/backend/src/test/resources/samples");
         File[] listOfFiles = folder.listFiles();
 
         if(nonNull(listOfFiles)) {
